@@ -36,9 +36,14 @@ public class RPCServer implements ApplicationContextAware {
     private static final Logger logger = LoggerFactory.getLogger(RPCServer.class);
 
     /**
-     * 服务器的地址，格式为ip:port
+     * 服务器本地绑定的地址，格式为ip:port
      */
-    private String serverAddress;
+    private String bindAddress;
+
+    /**
+     * 服务器对外公布的地址，格式为ip:port
+     */
+    private String publicAddress;
 
     /**
      * 注册服务的接口
@@ -51,7 +56,14 @@ public class RPCServer implements ApplicationContextAware {
     private Map<String, Object> serviceMap = new HashMap<>();
 
     public RPCServer(String serverAddress, ServiceRegistry serviceRegistry) {
-        this.serverAddress = serverAddress;
+        this.bindAddress = serverAddress;
+        this.publicAddress = serverAddress;
+        this.serviceRegistry = serviceRegistry;
+    }
+
+    public RPCServer(String bindAddress, String publicAddress, ServiceRegistry serviceRegistry) {
+        this.bindAddress = bindAddress;
+        this.publicAddress = publicAddress;
         this.serviceRegistry = serviceRegistry;
     }
 
@@ -107,7 +119,7 @@ public class RPCServer implements ApplicationContextAware {
                     .option(ChannelOption.SO_BACKLOG, 1024)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
 
-            String[] address = serverAddress.split(":");
+            String[] address = bindAddress.split(":");
             String host = address[0];
             int port = Integer.parseInt(address[1]);
 
@@ -130,7 +142,7 @@ public class RPCServer implements ApplicationContextAware {
         if (serviceRegistry != null) {
             for (String serviceFullname : serviceMap.keySet()) {
                 logger.debug("向注册中心注册服务：{}", serviceFullname);
-                serviceRegistry.registerService(serviceFullname, serverAddress);
+                serviceRegistry.registerService(serviceFullname, publicAddress);
             }
         } else {
             throw new RuntimeException("服务中心不可用");
